@@ -13,64 +13,83 @@ import (
 )
 
 const (
-	appDirName  = ".dp-cli"
-	keyFileName = "key"
+  keyFilePath = "/etc/dp-cli/"
+	keyFileName = "dp-cli.key"
+
+	tokenFilePath = "token"
+	tokenFileName = "dp-cli.token"
+
+  appDirName  = ".dp-cli" // TODO: remove this
 	tokenFile   = "token"
-  encrypted = true // temporary! set this to true in prod
+
+  forceFallbackMethod = true // disable this in prod to enable keyring storage method
+  enableTokenEncryption = true // dev stuff! set this to true in prod
 )
 
-func Auth() (bool, error) {
-  key, err := loadOrCreateKey()
-  if err != nil {
-    panic("Error loading key: " + err.Error())
-  }
-
-  credsExist := areCredentialsStored();
-
-  if (credsExist) {
-    creds, err := loadEncryptedCredentials(key)
-    if err != nil {
-      panic("Error loading token: " + err.Error())
-    }
-
-    fmt.Println("Decrypted credentials: username", creds.Username)
-    fmt.Println("Decrypted credentials: token", creds.Username)
+func Auth() error {
+  if !isOsHeadless() && !forceFallbackMethod {
+    // use go-keyring here...
+  	return nil
   } else {
-    reader := bufio.NewReader(os.Stdin)
-
-    var username string;
-    var token string;
-
-    for {
-      fmt.Println("Enter your name:")
-      u, err := reader.ReadString('\n')
-
-      if (err == nil) {
-        username = strings.TrimSpace(u)
-        break
-      }
-    }
-    
-    for {
-      fmt.Println("Enter your token:")
-      t, err := reader.ReadString('\n')
-
-      if (err == nil) {
-        token = strings.TrimSpace(t)
-        break
-      }
-    }
-
-    var creds Credentials = Credentials{username, token}
-    
-    err = saveEncryptedCredentials(creds, key)
+    key, err := loadOrCreateKey()
     if err != nil {
-      panic("Error saving token: " + err.Error())
+      panic("Error loading key: " + err.Error())
     }
+
+    credsExist := areCredentialsStored();
+
+    if (credsExist) {
+      creds, err := loadEncryptedCredentials(key)
+      if err != nil {
+        panic("Error loading token: " + err.Error())
+      }
+
+      fmt.Println("Decrypted credentials: username", creds.Username)
+      fmt.Println("Decrypted credentials: token", creds.Username)
+    } else {
+      reader := bufio.NewReader(os.Stdin)
+
+      var username string;
+      var token string;
+
+      for {
+        fmt.Println("Enter your name:")
+        u, err := reader.ReadString('\n')
+
+        if (err == nil) {
+          username = strings.TrimSpace(u)
+          break
+        }
+      }
+      
+      for {
+        fmt.Println("Enter your token:")
+        t, err := reader.ReadString('\n')
+
+        if (err == nil) {
+          token = strings.TrimSpace(t)
+          break
+        }
+      }
+
+      var creds Credentials = Credentials{username, token}
+      
+      err = saveEncryptedCredentials(creds, key)
+      if err != nil {
+        panic("Error saving token: " + err.Error())
+      }
+    }
+	
+  	return nil
   }
-	
-	
-	return true, err
+}
+
+func isOsHeadless() bool {
+  if os.Getenv("DISPLAY") == "" {
+    return true
+  } else {
+    return false
+  }
 }
 
 func getAppDir() (string, error) {
@@ -110,7 +129,7 @@ func saveEncryptedCredentials(creds Credentials, key []byte) error {
     return err
   }
 
-  if (!encrypted) {
+  if (!enableTokenEncryption) {
 	  appDir, _ := getAppDir()
 	  return os.WriteFile(filepath.Join(appDir, tokenFile), data, 0600)
   }
@@ -142,7 +161,7 @@ func loadEncryptedCredentials(key []byte) (Credentials, error) {
 		return Credentials{}, err
 	}
 
-  if (!encrypted) {
+  if (!enableTokenEncryption) {
     var creds Credentials
     err = creds.FromBytes(data)
 

@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-  _, err := auth.Auth();
+  err := auth.Auth();
   if (err != nil) {
     fmt.Println(err)
     return
