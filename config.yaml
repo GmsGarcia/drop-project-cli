@@ -1,0 +1,14 @@
+headed:
+  todo: ""
+
+headless:
+  appDirName: ".dp-cli" # TODO: remove this
+
+  keyFilePath:  "/home/{USER}/.dp-cli/" #"/etc/dp-cli/"
+  keyFileName:  "dp-cli.key"
+  tokenFilePath: "/home/{USER}/.dp-cli/"
+  tokenFileName:  "dp-cli.token"
+
+dev: 
+  forceFallbackMethod: true # disable this in prod to enable keyring storage method
+  enableTokenEncryption: true # dev stuff! set this to true in prod

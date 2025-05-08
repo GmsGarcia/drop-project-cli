@@ -1,7 +1,6 @@
 package auth
 
 import (
-	// "bufio"
 	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
@@ -10,25 +9,27 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"cli/utils"
+	. "cli/structs"
 )
 
-const (
-  keyFilePath = "/etc/dp-cli/"
-	keyFileName = "dp-cli.key"
+var config Config
+var keyFile string
+var tokenFile string
 
-	tokenFilePath = "token"
-	tokenFileName = "dp-cli.token"
+func Auth(config Config) error {
+  err := config.LoadConfig("config.yaml")
+  if err != nil {
+    panic("Error loading config: " + err.Error())
+  }
 
-  appDirName  = ".dp-cli" // TODO: remove this
-	tokenFile   = "token"
+	keyFile = filepath.Join(config.Headless.KeyFilePath, config.Headless.KeyFileName)
+	tokenFile = filepath.Join(config.Headless.TokenFilePath, config.Headless.TokenFileName)
 
-  forceFallbackMethod = true // disable this in prod to enable keyring storage method
-  enableTokenEncryption = true // dev stuff! set this to true in prod
-)
-
-func Auth() error {
-  if !isOsHeadless() && !forceFallbackMethod {
+  if !utils.IsOsHeadless() && !config.Dev.ForceFallbackMethod {
     // use go-keyring here...
+      panic("Error loading key: " + err.Error())
   	return nil
   } else {
     key, err := loadOrCreateKey()
@@ -36,7 +37,7 @@ func Auth() error {
       panic("Error loading key: " + err.Error())
     }
 
-    credsExist := areCredentialsStored();
+    credsExist := utils.FileExists(keyFile) && utils.FileExists(tokenFile);
 
     if (credsExist) {
       creds, err := loadEncryptedCredentials(key)
@@ -84,33 +85,8 @@ func Auth() error {
   }
 }
 
-func isOsHeadless() bool {
-  if os.Getenv("DISPLAY") == "" {
-    return true
-  } else {
-    return false
-  }
-}
-
-func getAppDir() (string, error) {
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	appDir := filepath.Join(dir, appDirName)
-	os.MkdirAll(appDir, 0700)
-	return appDir, nil
-}
-
 func loadOrCreateKey() ([]byte, error) {
-	appDir, err := getAppDir()
-	if err != nil {
-		return nil, err
-	}
-
-	keyPath := filepath.Join(appDir, keyFileName)
-
-	if data, err := os.ReadFile(keyPath); err == nil {
+	if data, err := os.ReadFile(keyFile); err == nil {
 		return data, nil
 	}
 
@@ -119,7 +95,7 @@ func loadOrCreateKey() ([]byte, error) {
 		return nil, err
 	}
 
-	err = os.WriteFile(keyPath, key, 0600)
+  err := os.WriteFile(keyFile, key, 0600)
 	return key, err
 }
 
@@ -129,9 +105,8 @@ func saveEncryptedCredentials(creds Credentials, key []byte) error {
     return err
   }
 
-  if (!enableTokenEncryption) {
-	  appDir, _ := getAppDir()
-	  return os.WriteFile(filepath.Join(appDir, tokenFile), data, 0600)
+  if (!config.Dev.EnableTokenEncryption) {
+	  return os.WriteFile(tokenFile, data, 0600)
   }
 
   block, err := aes.NewCipher(key)
@@ -150,18 +125,16 @@ func saveEncryptedCredentials(creds Credentials, key []byte) error {
   }
 
   ciphertext := gcm.Seal(nonce, nonce, data, nil)
-  appDir, _ := getAppDir()
-  return os.WriteFile(filepath.Join(appDir, tokenFile), ciphertext, 0600)
+  return os.WriteFile(tokenFile, ciphertext, 0600)
 }
 
 func loadEncryptedCredentials(key []byte) (Credentials, error) {
-	appDir, _ := getAppDir()
-	data, err := os.ReadFile(filepath.Join(appDir, tokenFile))
+	data, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return Credentials{}, err
 	}
 
-  if (!enableTokenEncryption) {
+  if (!config.Dev.EnableTokenEncryption) {
     var creds Credentials
     err = creds.FromBytes(data)
 
@@ -200,16 +173,4 @@ func loadEncryptedCredentials(key []byte) (Credentials, error) {
 	}
 
 	return creds, nil
-}
-
-func areCredentialsStored() bool {
-	appDir, _ := getAppDir()
-
-  _, errK := os.ReadFile(filepath.Join(appDir, keyFileName));
-  _, errT := os.ReadFile(filepath.Join(appDir, tokenFile));
-
-  if (errK != nil || errT != nil) {
-    return false;
-  } 
-  return true;
 }

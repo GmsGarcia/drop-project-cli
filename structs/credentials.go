@@ -1,4 +1,4 @@
-package auth
+package structs
 
 import "encoding/json"
 
