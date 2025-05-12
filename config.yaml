@@ -1,14 +1,17 @@
-headed:
-  todo: ""
-
 headless:
-  appDirName: ".dp-cli" # TODO: remove this
-
-  keyFilePath:  "/home/{USER}/.dp-cli/" #"/etc/dp-cli/"
-  keyFileName:  "dp-cli.key"
+  keyFilePath: "/home/{USER}/.dp-cli/"
+  keyFileName: "dp-cli.key"
   tokenFilePath: "/home/{USER}/.dp-cli/"
-  tokenFileName:  "dp-cli.token"
+  tokenFileName: "dp-cli.token"
 
-dev: 
-  forceFallbackMethod: true # disable this in prod to enable keyring storage method
-  enableTokenEncryption: true # dev stuff! set this to true in prod
+api:
+  server: "deisi.ulusofona.pt"
+  endpoints:
+    assignments: "/drop-project/api/student/assignments/{ASSIGNMENT_ID}"
+    current_assignment: "/drop-project/api/student/assignments/current"
+    submission: "/drop-project/api/student/submissions/{SUBMISSION_ID}"
+    new_submission: "/drop-project/api/student/submissions/new"
+
+dev: # this is extremelly insecure! should be removed ASAP to force encryption!
+  forceFallbackMethod: false
+  enableTokenEncryption: true

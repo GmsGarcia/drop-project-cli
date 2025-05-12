@@ -1,0 +1,2 @@
+- remove dev configs
+- more graceful exits?

@@ -2,19 +2,15 @@ package structs
 
 import (
 	"os"
-	"os/user"
   "strings"
 	"gopkg.in/yaml.v3"
+  "cli/utils"
 )
 
 type Config struct {
-  Headed HeadedConfig `yaml:"headed"`
   Headless HeadlessConfig `yaml:"headless"`
-  Dev DevConfig `yaml:"dev"`
-}
-
-type HeadedConfig struct {
-  Todo string `yaml:"todo"`
+  Api ApiConfig `yaml:"api"`
+  Dev DevConfig `yaml:"dev"` // TODO: remove this... 
 }
 
 type HeadlessConfig struct {
@@ -29,33 +25,37 @@ type DevConfig struct {
   EnableTokenEncryption bool `yaml:"enableTokenEncryption"` 
 }
 
-func (c *Config) LoadConfig(file string) error {
+type ApiConfig struct {
+  Server string `yaml:"server"`
+  Endpoints EndpointsConfig `yaml:"endpoints"`
+}
+
+type EndpointsConfig struct {
+  Assignments string `yaml:"assignments"`
+  CurrentAssignment string `yaml:"current_assignment"`
+  Submissions string `yaml:"submissions"`
+  NewSubmission string `yaml:"new_submission"`
+}
+
+func (c *Config) LoadConfig(file string) {
   data, err := os.ReadFile(file)
   if err != nil {
-    return err
+    panic("Failed to load config: " + err.Error())
   }
   err = yaml.Unmarshal(data, &c)
   if err != nil {
-    return err
+    panic("Failed to load config: " + err.Error())
   }
 
-  if strings.Contains(c.Headless.KeyFilePath, "{USER}") {
-    user, err := user.Current()
-    if err != nil {
-      return err
+  if utils.IsOsHeadless() {
+    if strings.Contains(c.Headless.KeyFilePath, "{USER}") {
+      username := utils.GetUsername() 
+      c.Headless.KeyFilePath = strings.Replace(c.Headless.KeyFilePath, "{USER}", username, -1);
     }
 
-    c.Headless.KeyFilePath = strings.Replace(c.Headless.KeyFilePath, "{USER}", user.Username, -1);
-  }
-
-  if strings.Contains(c.Headless.TokenFilePath, "{USER}") {
-    user, err := user.Current()
-    if err != nil {
-      return err
+    if strings.Contains(c.Headless.TokenFilePath, "{USER}") {
+      username:= utils.GetUsername() 
+      c.Headless.TokenFilePath = strings.Replace(c.Headless.TokenFilePath, "{USER}", username, -1);
     }
-
-    c.Headless.TokenFilePath = strings.Replace(c.Headless.TokenFilePath, "{USER}", user.Username, -1);
   }
-
-  return nil
 }
