@@ -8,10 +8,10 @@
 <h3 align="center">Simple CLI app to upload and access Drop Project assignments</h3>
 
 <p align="center">
-  <a href="#description">Description</a>
-  <a href="#features">Features</a>
-  <a href="#installation">Installation</a>
-  <a href="#usage">Usage</a>
+  <a href="#description">Description</a>•
+  <a href="#features">Features</a>•
+  <a href="#installation">Installation</a>•
+  <a href="#usage">Usage</a>•
   <a href="#configuration">Configuration</a>
 </p>
 
